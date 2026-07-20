@@ -5,9 +5,10 @@ import { globalErrorHandler } from './middlewares/error.middleware'
 import { PORT } from './config/config'
 import connectdb from './DB/connection.db'
 import { redisService } from './common/index'
+import cors from "cors";
 const bootstrab =async ():Promise<void>=>{
     const app:express.Express = express()
-    app.use(express.json())
+    app.use(cors(),express.json())
     app.get("/",(req:Request,res:Response,next:NextFunction):Response=>{
         return res.status(200).json({message:'landing api '})
     })
