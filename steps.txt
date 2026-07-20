@@ -1,0 +1,230 @@
+1 => folder structure 
+    .modules
+        .AUTH
+        .USER
+        .requirementsباقي ال  
+
+
+    
+    .middlewares
+        .globalerrorhandler => 
+                و تديله تايب جديد عن طريق انك تعمل انترفيس جديد يعمل نفس الكلام statuscode وتزود عليه ال error class بتعمل كلاس جديد تورث فيه ال status code عشان تتحكم ف ال
+    
+    
+    
+    
+    
+    
+    
+    .common
+        .utils
+        .exceptions
+
+
+        .response
+            .sucessResponse 
+
+
+
+
+
+
+
+
+
+    .db
+        connect with moongoose 
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    steps of consept =>
+
+        . validation 
+            . define schema
+
+
+
+
+
+
+
+            .# Zod Notes (Part 1)
+
+                    ## 1. `refine()`
+
+                    **الفكرة:**
+                    تستخدمها لما يكون عندك شرط مخصص على **Field واحد**.
+
+                    **بتاخد:**
+
+                    * Callback لازم يرجع `true` أو `false`.
+                    * رسالة الخطأ إذا الشرط فشل.
+
+                    **أمثلة:**
+
+                    * الباسورد لازم يحتوي على حرف Capital.
+                    * الإيميل لازم يكون Gmail.
+                    * عنوان التاسك مايبقاش عبارة عن مسافات فقط.
+
+                    ```ts
+                    z.string().refine(
+                    (value) => value.trim() !== "",
+                    {
+                        message: "Task title cannot be empty."
+                    }
+                    )
+                    ```
+
+                    > **قاعدة:** لو الـ Validation على Field واحد → استخدم `refine()`.
+
+                    ---
+
+                    ## 2. `transform()`
+
+                    **الفكرة:**
+                    تستخدمها لتغيير قيمة البيانات **بعد نجاح الـ Validation**.
+
+                    **أمثلة:**
+
+                    * إزالة المسافات.
+                    * تحويل الإيميل إلى حروف صغيرة.
+                    * تحويل String إلى Number أو أي نوع آخر.
+
+                    ```ts
+                    z.string().transform((value) => value.trim())
+                    ```
+
+                    ```ts
+                    z.string()
+                    .transform((value) => value.trim())
+                    .transform((value) => value.toLowerCase())
+                    ```
+
+                    **ملاحظات مهمة:**
+
+                    * `transform()` يغير القيمة نفسها.
+                    * كل `transform` يستقبل ناتج الـ `transform` السابق.
+                    * يمكنه تغيير نوع البيانات.
+
+                    مثال:
+
+                    ```ts
+                    z.string().transform((value) => value.length)
+                    ```
+
+                    الناتج هنا سيكون `number` وليس `string`.
+
+                    > **قاعدة:** لو عايز تغير البيانات وليس مجرد التحقق منها → استخدم `transform()`.
+
+                    ---
+
+                    ## 3. `superRefine()`
+
+                    **الفكرة:**
+                    تستخدمها عندما يعتمد الـ Validation على **أكثر من Field**.
+
+                    **مثال:**
+
+                    * Password يساوي Confirm Password.
+                    * End Date بعد Start Date.
+                    * Min Price أقل من Max Price.
+
+                    ```ts
+                    z.object({
+                    password: z.string(),
+                    confirmPassword: z.string()
+                    }).superRefine((data, ctx) => {
+
+                    if (data.password !== data.confirmPassword) {
+                        ctx.addIssue({
+                        code: "custom",
+                        path: ["confirmPassword"],
+                        message: "Passwords do not match"
+                        });
+                    }
+
+                    });
+                    ```
+
+                    ### شرح البارامترات
+
+                    #### `data`
+
+                    هو الـ Object بالكامل بعد نجاح الـ Validation الأساسي.
+
+                    ```ts
+                    data.password
+                    data.confirmPassword
+                    ```
+
+                    #### `ctx`
+
+                    Context يتيح لك إضافة أخطاء مخصصة.
+
+                    ```ts
+                    ctx.addIssue(...)
+                    ```
+
+                    #### `code`
+
+                    نوع الخطأ.
+
+                    ```ts
+                    code: "custom"
+                    ```
+
+                    #### `path`
+
+                    يحدد أي Field سيظهر عليه الخطأ.
+
+                    ```ts
+                    path: ["confirmPassword"]
+                    ```
+
+                    #### `message`
+
+                    رسالة الخطأ التي ستصل للمستخدم.
+
+                    ```ts
+                    message: "Passwords do not match"
+                    ```
+
+                    > **قاعدة:** لو الـ Validation يعتمد على أكثر من Field → استخدم `superRefine()`.
+
+                    ---
+
+                    # ملخص سريع
+
+                    * ✅ `refine()` → شرط على Field واحد.
+                    * ✅ `transform()` → تغيير قيمة البيانات بعد نجاح الـ Validation.
+                    * ✅ `superRefine()` → مقارنة أو التحقق بين أكثر من Field.
+
