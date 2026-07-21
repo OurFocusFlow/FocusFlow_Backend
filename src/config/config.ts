@@ -22,9 +22,3 @@ export const IV_LENGTH = parseInt(process.env.IV_LENGTH ?? '16')
 export const ENC_SECRET_KEY = Buffer.from(process.env.ENC_SECRET_KEY as string)
 
 
-
-export const AWS_REGION = process.env.AWS_REGION as string
-export const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME as string
-export const AWS_ACCESS_KET_ID = process.env.AWS_ACCESS_KET_ID as string
-export const AWS_SECRET_ACCESS_KET_ID = process.env.AWS_SECRET_ACCESS_KET_ID as string
-export const AWS_EXPIRES_IN = parseInt(process.env.AWS_EXPIRES_IN as string||"120")
