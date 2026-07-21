@@ -31,3 +31,12 @@ export const resendConfirmEmailSchema = {
         email:generalValidationFields.email
     })
 }
+export const resetForgotPassword = {
+    body:z.strictObject({
+        email:generalValidationFields.email,
+        password:generalValidationFields.password,
+        confirmPaasword:generalValidationFields.confirmPassword,
+        otp:generalValidationFields.otp
+
+    })
+}

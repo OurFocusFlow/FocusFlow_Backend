@@ -9,9 +9,10 @@ import { emailTemplate } from "../../common/utils/email/templete.email";
 import { createOtp } from "../../common/utils/otp";
 import { emailEvent } from "../../common/utils/email/event.email";
 import { EmailEnum } from "../../common/enums/email.enum";
-import { TokenService } from "../../common/services/token.service.js";
-import { ILoginResponse } from "./auth.entity.js";
-// import {OAuth2Client} from 'google-auth-library';
+import { TokenService } from "../../common/services/token.service";
+import { ILoginResponse } from "./auth.entity";
+import { OAuth2Client, TokenPayload } from "google-auth-library";
+import { CLIENT_ID } from "../../config/config";
 
 export class AuthenticationService {
     private userRepository : UserReposiroty
@@ -130,26 +131,97 @@ export class AuthenticationService {
     return user.toJSON()
 }
 
-// verifyGoogleAcc = async (idToken) => {
+    async  verifyGoogleAcc(idToken:string):Promise<TokenPayload>{
+        
+    const client = new OAuth2Client();
     
-// const client = new OAuth2Client();
-// async function verify() {
-//   const ticket = await client.verifyIdToken({
-//       idToken,
-//       audience: "", 
-//   });
-//   const payload = ticket.getPayload();
-//               if (!payload?.email_verified) {
-//                 throw new BadRequestException('fail to verify by google')
-//             }
-// return payload
-// }
-// verify().catch(console.error);
-// }
-//     async signUpWithGmail(idToken){
-//             const payload = await this.verifyGoogleAcc(idToken)
+    const ticket = await client.verifyIdToken({
+        idToken,
+        audience: CLIENT_ID, 
+    });
+    const payload = ticket.getPayload();
+        if (!payload?.email_verified) {
+                    throw new BadRequestException('fail to verify by google')
+                
+            }
+            return payload
+}
 
-//     }
+
+
+    async loginWithGmail(idToken:string){
+            const payload = await this.verifyGoogleAcc(idToken)
+        const user = await this.userRepository.findOne({filter:{email:payload.email as string,provider:ProviderEnum.GOOGLE}} )
+        if (!user) {
+            throw new NotFoundException('not register account ')
+        }
+
+            return await this.tokenService.createLoginCredentials(user)
+    }
+
+
+    async signUpWithGmail(idToken:string){
+            const payload = await this.verifyGoogleAcc(idToken)
+        const checkExist = await this.userRepository.findOne({filter:{email:payload.email as string}} )
+        if (checkExist) {
+            if (checkExist.provider != ProviderEnum.GOOGLE) {
+                throw new ConflictException('invalid provider')
+            }
+            return {status:200,credentials:await this.loginWithGmail(idToken)}
+        }
+        const user = await this.userRepository.createOne({data:
+            {
+                email:payload.email as string,
+                firstName:payload.given_name as string
+                ,lastName:payload.family_name as string,
+                profilePicture:payload.picture as string,
+                confirmEmail:new Date(),
+                provider:ProviderEnum.GOOGLE
+            }})
+            return {status:201,credentials:await this.tokenService.createLoginCredentials(user)}
+    }
+
+    async requestForgotPasswordOtp({email}:{email:string}):Promise<void>  {
+
+    const account = await this.userRepository.findOne(
+        { filter:{email , confirmEmail : {$exists :true},provider : ProviderEnum.SYSTEM}})
+    if (!account) {
+        throw new NotFoundException(`fail to find matching account `)
+    }
+    await this.sendEmailOtp({email,subject:EmailEnum.FORGOT_PASSWORD,title:'reset code '})
+    return ;
+}
+
+    async resetForgotPasswordOtp  ({email,otp,password}:{email:string,otp:string,password:string}){
+    await this.verifyForgotPasswordOtp({email,otp})
+        const account = await this.userRepository.findOneAndUpdate({
+            filter:{email , confirmEmail : {$exists :true},provider : ProviderEnum.SYSTEM},
+        update:{
+            password : await generateHash({plainText:password , salt:15}),
+            changeCredentialsTime:new Date()
+        }
+        })
+        if (!account) {
+            throw new NotFoundException('account not found ')
+        }
+        await this.redis.deletekey(await this.redis.keys(this.redis.baseRevokeTokenKey(account._id)))
+        await this.redis.deletekey(await this.redis.keys(this.redis.otpKey({email,subject:EmailEnum.FORGOT_PASSWORD})))
+        return ;
+}
+
+
+    async verifyForgotPasswordOtp({email,otp}:{email:string,otp:string}){
+    const hashOtp =await this.redis.get(this.redis.otpKey({email,subject:EmailEnum.FORGOT_PASSWORD}))
+    if (!hashOtp) {
+        throw new NotFoundException(`otp is expired`)
+    }
+    if (!await compareHash({plainText:otp,ciphertext:hashOtp})) {
+        throw new ConflictException('conflict otp ')
+    }
+    
+    return ;
+}
+
 }
 
 

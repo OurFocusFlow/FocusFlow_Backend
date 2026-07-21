@@ -32,6 +32,8 @@
 
     export const EMAIL_APP = process.env.EMAIL_APP as string;
 
+    export const CLIENT_ID = process.env.CLIENT_ID as string;
+    
     export const ORIGINS = process.env.ORIGINS?.split(",") || [];
 
     export const SALT_ROUND = Number(process.env.SALT_ROUND) || 10;

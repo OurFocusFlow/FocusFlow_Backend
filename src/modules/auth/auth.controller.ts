@@ -28,7 +28,7 @@ router.post('/signup',
     router.patch(
     "/confirm-email",
     validationMiddleware(validators.confirmEmailSchema),
-    async (req, res, next) => {
+    async (req:Request,res:Response,next:NextFunction):Promise<Response> => {
     await authService.confirmEmail(req.body);
         return successRespone({ res });
     },
@@ -36,10 +36,42 @@ router.post('/signup',
     router.patch(
     "/resend-confirm-email",
     validationMiddleware(validators.resendConfirmEmailSchema),
-    async (req, res, next) => {
+    async (req:Request,res:Response,next:NextFunction):Promise<Response> => {
         await authService.resendConfirmEmail(req.body);
         return successRespone({ res });
     },
+
+    router.post('/signup/gmail',
+        async(req:Request,res:Response,next:NextFunction):Promise<Response>=>{
+            const {status,credentials} = await authService.signUpWithGmail(req.body.idToken)
+        return successRespone({ res,status,data:{credentials} });
+
+        }
+    )
     );
 
+    router.post(
+    "/request-forgot-password",
+    validationMiddleware(validators.resendConfirmEmailSchema),
+    async (req, res, next) => {
+        await authService.requestForgotPasswordOtp(req.body);
+        return successRespone({ res });
+    },
+    );
+    router.patch(
+    "/verify-forgot-password",
+    validationMiddleware(validators.confirmEmailSchema),
+    async (req, res, next) => {
+        await authService.verifyForgotPasswordOtp(req.body);
+        return successRespone({ res });
+    },
+    );
+    router.patch(
+    "/reset-forgot-password",
+    validationMiddleware(validators.resetForgotPassword),
+    async (req, res, next) => {
+        await authService.resetForgotPasswordOtp(req.body);
+        return successRespone({ res });
+    },
+    );
 export default router

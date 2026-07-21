@@ -54,6 +54,7 @@ export abstract class DatabaseRepository <TRowDoc> {
         return await this.model.insertMany(data as any ) as HydratedDocument<TRowDoc>[]
     }
     // findOne
+    
     async findOne({
         filter,
         projection,
